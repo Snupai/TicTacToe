@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -34,6 +36,7 @@ namespace TicTacToe
                 new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Player2, "N/A"),
                 new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Computer, "N/A")
             ]; // later implement loading from file
+        string Ties = "Ties N/A";
 
         private void InitializeGame()
         {
@@ -56,7 +59,7 @@ namespace TicTacToe
             BottomRightButton.IsEnabled = true;
         }
 
-        private void ResetBoard()
+        private void LockButtons()
         {
             TopLeftButton.IsEnabled = false;
             TopCenterButton.IsEnabled = false;
@@ -67,7 +70,10 @@ namespace TicTacToe
             BottomLeftButton.IsEnabled = false;
             BottomCenterButton.IsEnabled = false;
             BottomRightButton.IsEnabled = false;
+        }
 
+        private void ResetBoard()
+        {
             TopLeft.Content = "";
             TopCenter.Content = "";
             TopRight.Content = "";
@@ -81,8 +87,8 @@ namespace TicTacToe
 
         private void NewGame_Click(object sender, RoutedEventArgs e)
         {
+            GameCount.Content = GameCountPrefix + ++TicTacGameCount;
             InitializeGame();
-            GameCount.Content = GameCountPrefix + TicTacGameCount++;
         }
 
         private void ExitGame_Click(object sender, RoutedEventArgs e)
@@ -90,12 +96,13 @@ namespace TicTacToe
             if (game != null)
                 if (game.CheckWin() == TicTacToeGame.TicTacResults.NoConclusion)
                 {
-                    MessageBoxResult doReset = MessageBox.Show("The game is not over yet.", "Game in progress.\nDo you want to reset the board in order to exit?", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+                    MessageBoxResult doReset = MessageBox.Show("Game in progress.", "Do you want to reset the board in order to exit?", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
                     switch (doReset)
                     {
                         case MessageBoxResult.Yes:
+                            LockButtons();
                             ResetBoard();
-                            GameCount.Content = GameCountPrefix + TicTacGameCount--;
+                            GameCount.Content = GameCountPrefix + --TicTacGameCount;
                             game = null; // Reset the game dat
                             break;
                         case MessageBoxResult.No:
@@ -128,12 +135,51 @@ namespace TicTacToe
 
         private void ResetScores_Click(object sender, RoutedEventArgs e)
         {
-            Score =
-            [
-                new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Player1, "N/A"),
-                new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Player2, "N/A"),
-                new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Computer, "N/A")
-            ];
+            MessageBoxResult result = MessageBox.Show("Would you like to all Scores?", "Reset Scores", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            switch (result)
+            {
+                case MessageBoxResult.Yes:
+                    Score =
+                    [
+                        new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Player1, "N/A"),
+                        new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Player2, "N/A"),
+                        new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Computer, "N/A")
+                    ];
+
+                    TicTacGameCount = 0;
+                    Ties = "Ties N/A";
+                    ComputerScore.Content = Score[2].Item2;
+                    Player1Score.Content = Score[0].Item2;
+                    Player2Score.Content = Score[1].Item2;
+                    TiesScore.Content = Ties.Split(' ')[Ties.Split(' ').Length - 1];
+                    GameCount.Content = GameCountPrefix + TicTacGameCount;
+                    LockButtons();
+                    ResetBoard();
+                    break;
+                case MessageBoxResult.No:
+                    // Do nothing
+                    break;
+            }
+        }
+
+        private async void DisplayField()
+        {
+            try
+            {
+                char[,] board = game.Field;
+
+                TcpIpSender sender = new TcpIpSender(IPAddress.Parse("192.168.123.6"), 50000);
+
+                string message = $"{board[0, 0]};{board[0, 1]};{board[0, 2]}\n" +
+                                 $"{board[1, 0]};{board[1, 1]};{board[1, 2]}\n" +
+                                 $"{board[2, 0]};{board[2, 1]};{board[2, 2]}";
+
+                await sender.SendenAsync(message);
+            }
+            catch (Exception e)
+            {
+                MessageBox.Show(e.Message);
+            }
         }
 
         private void AddScore()
@@ -148,20 +194,90 @@ namespace TicTacToe
                     break;
                 case TicTacToeGame.TicTacResults.Player2:
                     if (Score[1].Item2 == "N/A")
-                        Score[1] = new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Player1, "1");
+                        Score[1] = new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Player2, "1");
                     else
-                        Score[1] = new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Player1, (Convert.ToInt32(Score[0].Item2) + 1).ToString());
+                        Score[1] = new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Player2, (Convert.ToInt32(Score[1].Item2) + 1).ToString());
                     break;
                 case TicTacToeGame.TicTacResults.Computer:
                     if (Score[2].Item2 == "N/A")
-                        Score[2] = new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Player1, "1");
+                        Score[2] = new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Computer, "1");
                     else
-                        Score[2] = new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Player1, (Convert.ToInt32(Score[0].Item2) + 1).ToString());
+                        Score[2] = new Tuple<TicTacToeGame.Players, string>(TicTacToeGame.Players.Computer, (Convert.ToInt32(Score[2].Item2) + 1).ToString());
                     break;
                 case TicTacToeGame.TicTacResults.NoConclusion:
                     break;
+                case TicTacToeGame.TicTacResults.Draw:
+                    if (Ties.Split(' ')[Ties.Split(' ').Length - 1] == "N/A")
+                        Ties = "Ties 1";
+                    else
+                        Ties = "Ties " + (Convert.ToInt32(Ties.Split(' ')[Ties.Split(' ').Length - 1]) + 1).ToString();
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
+            }
+            ComputerScore.Content = Score[2].Item2;
+            Player1Score.Content = Score[0].Item2;
+            Player2Score.Content = Score[1].Item2;
+            TiesScore.Content = Ties.Split(' ')[Ties.Split(' ').Length - 1];
+
+            DisplayField();
+        }
+
+        private void DoComputerTurn()
+        {
+            if (game.CheckWin() != TicTacToeGame.TicTacResults.NoConclusion)
+            {
+                LockButtons();
+                AddScore();
+                return;
+            }
+            game.SetFieldComputer();
+            switch (game.LastMove)
+            {
+                case { X: 1, Y: 1 }:
+                    TopLeft.Content = "O";
+                    TopLeftButton.IsEnabled = false;
+                    break;
+                case { X: 1, Y: 2 }:
+                    TopCenter.Content = "O";
+                    TopCenterButton.IsEnabled = false;
+                    break;
+                case { X: 1, Y: 3 }:
+                    TopRight.Content = "O";
+                    TopRightButton.IsEnabled = false;
+                    break;
+                case { X: 2, Y: 1 }:
+                    CenterLeft.Content = "O";
+                    CenterLeftButton.IsEnabled = false;
+                    break;
+                case { X: 2, Y: 2 }:
+                    CenterCenter.Content = "O";
+                    CenterCenterButton.IsEnabled = false;
+                    break;
+                case { X: 2, Y: 3 }:
+                    CenterRight.Content = "O";
+                    CenterRightButton.IsEnabled = false;
+                    break;
+                case { X: 3, Y: 1 }:
+                    BottomLeft.Content = "O";
+                    BottomLeftButton.IsEnabled = false;
+                    break;
+                case { X: 3, Y: 2 }:
+                    BottomCenter.Content = "O";
+                    BottomCenterButton.IsEnabled = false;
+                    break;
+                case { X: 3, Y: 3 }:
+                    BottomRight.Content = "O";
+                    BottomRightButton.IsEnabled = false;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+            if (game.CheckWin() != TicTacToeGame.TicTacResults.NoConclusion)
+            {
+                LockButtons();
+                AddScore();
+                return;
             }
         }
 
@@ -187,6 +303,11 @@ namespace TicTacToe
                 TopLeft.Content = "O";
             }
             TopLeftButton.IsEnabled = false;
+            if (GameModeSingle.IsChecked == true)
+            {
+                DoComputerTurn();
+            }
+            DisplayField();
         }
 
         private void TopMiddle_Click(object sender, RoutedEventArgs e)
@@ -211,6 +332,11 @@ namespace TicTacToe
                 TopCenter.Content = "O";
             }
             TopCenterButton.IsEnabled = false;
+            if (GameModeSingle.IsChecked == true)
+            {
+                DoComputerTurn();
+            }
+            DisplayField();
         }
 
         private void TopRight_Click(object sender, RoutedEventArgs e)
@@ -235,6 +361,11 @@ namespace TicTacToe
                 TopRight.Content = "O";
             }
             TopRightButton.IsEnabled = false;
+            if (GameModeSingle.IsChecked == true)
+            {
+                DoComputerTurn();
+            }
+            DisplayField();
         }
 
         private void MiddleLeft_Click(object sender, RoutedEventArgs e)
@@ -259,6 +390,11 @@ namespace TicTacToe
                 CenterLeft.Content = "O";
             }
             CenterLeftButton.IsEnabled = false;
+            if (GameModeSingle.IsChecked == true)
+            {
+                DoComputerTurn();
+            }
+            DisplayField();
         }
 
         private void MiddleMiddle_Click(object sender, RoutedEventArgs e)
@@ -283,6 +419,11 @@ namespace TicTacToe
                 CenterCenter.Content = "O";
             }
             CenterCenterButton.IsEnabled = false;
+            if (GameModeSingle.IsChecked == true)
+            {
+                DoComputerTurn();
+            }
+            DisplayField();
         }
 
         private void MiddleRight_Click(object sender, RoutedEventArgs e)
@@ -307,6 +448,11 @@ namespace TicTacToe
                 CenterRight.Content = "O";
             }
             CenterRightButton.IsEnabled = false;
+            if (GameModeSingle.IsChecked == true)
+            {
+                DoComputerTurn();
+            }
+            DisplayField();
         }
 
         private void BottomLeft_Click(object sender, RoutedEventArgs e)
@@ -331,6 +477,11 @@ namespace TicTacToe
                 BottomLeft.Content = "O";
             }
             BottomLeftButton.IsEnabled = false;
+            if (GameModeSingle.IsChecked == true)
+            {
+                DoComputerTurn();
+            }
+            DisplayField();
         }
 
         private void BottomMiddle_Click(object sender, RoutedEventArgs e)
@@ -355,6 +506,11 @@ namespace TicTacToe
                 BottomCenter.Content = "O";
             }
             BottomCenterButton.IsEnabled = false;
+            if (GameModeSingle.IsChecked == true)
+            {
+                DoComputerTurn();
+            }
+            DisplayField();
         }
 
         private void BottomRight_Click(object sender, RoutedEventArgs e)
@@ -379,6 +535,11 @@ namespace TicTacToe
                 BottomRight.Content = "O";
             }
             BottomRightButton.IsEnabled = false;
+            if (GameModeSingle.IsChecked == true)
+            {
+                DoComputerTurn();
+            }
+            DisplayField();
         }
     }
 }
