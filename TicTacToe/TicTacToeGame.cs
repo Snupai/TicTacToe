@@ -58,7 +58,8 @@ namespace TicTacToe
                         }
                         else
                         {
-                            return TicTacResults.Player2;
+                            if (isSinglePlayer) { return TicTacResults.Computer; }
+                            else { return TicTacResults.Player2; }
                         }
                     }
                 }
@@ -77,7 +78,8 @@ namespace TicTacToe
                         }
                         else
                         {
-                            return TicTacResults.Player2;
+                            if (isSinglePlayer) { return TicTacResults.Computer; }
+                            else { return TicTacResults.Player2; }
                         }
                     }
                 }
@@ -94,7 +96,8 @@ namespace TicTacToe
                     }
                     else
                     {
-                        return TicTacResults.Player2;
+                        if (isSinglePlayer) { return TicTacResults.Computer; }
+                        else { return TicTacResults.Player2; }
                     }
                 }
             }
