@@ -87,6 +87,7 @@ namespace TicTacToe
 
         private void NewGame_Click(object sender, RoutedEventArgs e)
         {
+            ClearDisplayField();
             GameCount.Content = GameCountPrefix + ++TicTacGameCount;
             InitializeGame();
         }
@@ -102,6 +103,7 @@ namespace TicTacToe
                         case MessageBoxResult.Yes:
                             LockButtons();
                             ResetBoard();
+                            ClearDisplayField();
                             GameCount.Content = GameCountPrefix + --TicTacGameCount;
                             game = null; // Reset the game dat
                             break;
@@ -155,10 +157,32 @@ namespace TicTacToe
                     GameCount.Content = GameCountPrefix + TicTacGameCount;
                     LockButtons();
                     ResetBoard();
+                    ClearDisplayField();
                     break;
                 case MessageBoxResult.No:
                     // Do nothing
                     break;
+            }
+        }
+
+        private async void ClearDisplayField()
+        {
+            try
+            {
+                char[,] board = {{' ', ' ', ' ' }, { ' ', ' ', ' ' }, { ' ', ' ', ' ' }};
+
+                TcpIpSender sender = new TcpIpSender(IPAddress.Parse("192.168.42.6"), 50000); //Raspi: 192.168.123.6 for testing: 127.0.0.1
+
+                string message = $"{board[0, 0]};{board[0, 1]};{board[0, 2]}\n" +
+                                 $"{board[1, 0]};{board[1, 1]};{board[1, 2]}\n" +
+                                 $"{board[2, 0]};{board[2, 1]};{board[2, 2]}";
+
+                await sender.SendenAsync(message);
+                Thread.Sleep(2000); // to allow drawing of the board
+            }
+            catch (Exception e)
+            {
+                //MessageBox.Show(e.Message);
             }
         }
 
@@ -168,13 +192,14 @@ namespace TicTacToe
             {
                 char[,] board = game.Field;
 
-                TcpIpSender sender = new TcpIpSender(IPAddress.Parse("192.168.123.6"), 50000);
+                TcpIpSender sender = new TcpIpSender(IPAddress.Parse("192.168.42.6"), 50000); //Raspi: 192.168.123.6 for testing: 127.0.0.1
 
                 string message = $"{board[0, 0]};{board[0, 1]};{board[0, 2]}\n" +
                                  $"{board[1, 0]};{board[1, 1]};{board[1, 2]}\n" +
                                  $"{board[2, 0]};{board[2, 1]};{board[2, 2]}";
 
                 await sender.SendenAsync(message);
+                Thread.Sleep(3000); // to allow drawing of the board
             }
             catch (Exception e)
             {
