@@ -1,6 +1,7 @@
 # TicTacToe
 
 This is a simple implementation of the classic game Tic Tac Toe in C# using WPF for the user interface.
+See also [Tic Tac Toe TCP IP Receiver](https://github.com/Snupai/TicTacToeTcpIpReceiver)
 
 ## Project Structure
 
